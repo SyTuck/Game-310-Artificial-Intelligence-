@@ -6,6 +6,7 @@ public class Flock : MonoBehaviour
 {
     public FlockManager myManager;
     float speed;
+    bool turning = false;
 
     // Start is called before the first frame update
     void Start()
@@ -16,7 +17,45 @@ public class Flock : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        ApplyRules();
+        RaycastHit hit = new RaycastHit();
+        Vector3 direction = Vector3.zero; 
+
+        Bounds b = new Bounds(myManager.transform.position, myManager.swimLimits * 2);
+        if (!b.Contains(transform.position))
+        {
+            turning = true;
+            direction = myManager.transform.position - transform.position;
+        }
+        else if (Physics.Raycast(transform.position, this.transform.forward * 10, out hit))
+        {
+            turning = true;
+            direction = Vector3.Reflect(this.transform.forward, hit.normal);
+            //Debug.DrawRay(this.transform.position, this.transform.forward * 50, Color.red);
+        }
+        else
+        {
+            turning = false;
+        }
+
+        if (turning)
+        {
+            //Vector3 
+            direction = myManager.transform.position - transform.position;
+            transform.rotation = Quaternion.Slerp(transform.rotation,
+                                                  Quaternion.LookRotation(direction),
+                                                  myManager.rotationSpeed * Time.deltaTime);
+        }
+        else
+        {
+            if (Random.Range(0, 100) < 10)
+            {
+                speed = Random.Range(myManager.minSpeed, myManager.maxSpeed);
+            }
+            if (Random.Range(0, 100) < 20)
+            {
+                ApplyRules();
+            }
+        }
         transform.Translate(0, 0, Time.deltaTime * speed);
     }
 
@@ -53,7 +92,7 @@ public class Flock : MonoBehaviour
 
         if (groupSize > 0)
         {
-            vcentre = vcentre / groupSize;
+            vcentre = vcentre / groupSize + (myManager.goalPos - this.transform.position);
             speed = gSpeed / groupSize;
 
             Vector3 direction = (vcentre + vavoid) - transform.position;
